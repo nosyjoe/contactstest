@@ -7,11 +7,14 @@
 //
 
 import UIKit
+import AddressBook
 
 class MasterViewController: UITableViewController {
 
     var detailViewController: DetailViewController? = nil
     var objects = [AnyObject]()
+    
+    let addrBookRef = ABAddressBookCreateWithOptions(nil, nil).takeRetainedValue()
 
 
     override func viewDidLoad() {
@@ -25,6 +28,8 @@ class MasterViewController: UITableViewController {
             let controllers = split.viewControllers
             self.detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
         }
+        
+        requestContacts()
     }
 
     override func viewWillAppear(animated: Bool) {
@@ -89,6 +94,117 @@ class MasterViewController: UITableViewController {
         }
     }
 
+    
+    func requestContacts() {
+        let status = ABAddressBookGetAuthorizationStatus()
+        
+        switch status {
+        case .Denied, .Restricted:
+            print("Access already denied")
+            UIAlertView.init(title: nil, message: "This app requires access to your contacts to function properly. Please visit to the \"Privacy\" section in the iPhone Settings app.", delegate: nil, cancelButtonTitle: "Ok").show()
+            return
+        case .Authorized:
+            print("Access already authorized")
+            loadContactsOld()
+        case .NotDetermined:
+            print("Access not yet determined")
+            promptForAddressBookAccess(addrBookRef)
+        }
+        
+    }
+    
+    func loadContactsOld() {
+        
+        let now = NSDate()
+        
+        let people = ABAddressBookCopyArrayOfAllPeople(addrBookRef).takeRetainedValue() as NSArray as [ABRecord]
+        
+        print("\(people.count) contacts. execution time: \(NSDate().timeIntervalSinceDate(now)*1000)")
+        
+        for person in people {
+            guard let compositeName = ABRecordCopyCompositeName(person) else { continue }
+            guard let phones = ABRecordCopyValue(person, kABPersonPhoneProperty).takeRetainedValue() as? ABMultiValueRef else { continue }
+            
+            var numberString = ""
+            for (var i = 0; i < ABMultiValueGetCount(phones); i += 1) {
+                guard let nr = ABMultiValueCopyValueAtIndex(phones, i) else { continue }
+                numberString = numberString + (nr.takeRetainedValue() as! String)
+                numberString += " "
+            }
+            
+            let name = compositeName.takeRetainedValue() as String
+            
+            //print(name, ": ", numberString)
+        }
+        
+        print("\(people.count) contacts. execution time: \(NSDate().timeIntervalSinceDate(now)*1000)")
+    }
+    
+    
+    func promptForAddressBookAccess(addrBook: ABAddressBookRef!) {
+        var err: Unmanaged<CFError>? = nil
+        
+        ABAddressBookRequestAccessWithCompletion(addrBook) { (granted: Bool, error: CFError!) in
+            dispatch_async(dispatch_get_main_queue()) {
+                if granted {
+                    print("Addressbook Access granted")
+                    self.loadContactsOld()
+                } else {
+                    print("Addressbook Access denied")
+                }
+            }
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
 }
 
